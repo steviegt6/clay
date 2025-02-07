@@ -75,19 +75,6 @@ when ODIN_OS == .Windows {
     EnumBackingType :: u8
 }
 
-ElementConfigType :: enum EnumBackingType {
-    Rectangle = 1,
-    Border    = 2,
-    Floating  = 4,
-    Scroll    = 8,
-    Image     = 16,
-    Text      = 32,
-    Custom    = 64,
-    // Odin specific enum types
-    Id        = 65,
-    Layout    = 66,
-}
-
 RenderCommandType :: enum EnumBackingType {
     None,
     Rectangle,
@@ -101,7 +88,6 @@ RenderCommandType :: enum EnumBackingType {
 
 RectangleElementConfig :: struct {
     color:        Color,
-    cornerRadius: CornerRadius,
 }
 
 TextWrapMode :: enum EnumBackingType {
@@ -129,13 +115,17 @@ CustomElementConfig :: struct {
     customData: rawptr,
 }
 
+BorderWidth :: struct {
+    left: u16,
+    right: u16,
+    top: u16,
+    bottom: u16,
+    betweenChildren: u16,
+}
+
 BorderElementConfig :: struct {
-    left:            BorderData,
-    right:           BorderData,
-    top:             BorderData,
-    bottom:          BorderData,
-    betweenChildren: BorderData,
-    cornerRadius:    CornerRadius,
+    color: Color,
+    width: BorderWidth,
 }
 
 ScrollElementConfig :: struct {
@@ -144,15 +134,15 @@ ScrollElementConfig :: struct {
 }
 
 FloatingAttachPointType :: enum EnumBackingType {
-    LEFT_TOP,
-    LEFT_CENTER,
-    LEFT_BOTTOM,
-    CENTER_TOP,
-    CENTER_CENTER,
-    CENTER_BOTTOM,
-    RIGHT_TOP,
-    RIGHT_CENTER,
-    RIGHT_BOTTOM,
+    LeftTop,
+    LeftCenter,
+    LeftBottom,
+    CenterTop,
+    CenterCenter,
+    CenterBottom,
+    RightTop,
+    RightCenter,
+    RightBottom,
 }
 
 FloatingAttachPoints :: struct {
@@ -161,34 +151,75 @@ FloatingAttachPoints :: struct {
 }
 
 PointerCaptureMode :: enum EnumBackingType {
-    CAPTURE,
-    PASSTHROUGH,
+    Capture,
+    Passthrough,
+}
+
+FloatingAttachToElement :: enum EnumBackingType {
+    None,
+    Parent,
+    ElementWithId,
+    Root,
 }
 
 FloatingElementConfig :: struct {
     offset:             Vector2,
     expand:             Dimensions,
-    zIndex:             u16,
     parentId:           u32,
+    zIndex:             i32,
     attachment:         FloatingAttachPoints,
     pointerCaptureMode: PointerCaptureMode,
+    attachTo:           FloatingAttachToElement
 }
 
-ElementConfigUnion :: struct #raw_union {
-    rectangleElementConfig: ^RectangleElementConfig,
-    textElementConfig:      ^TextElementConfig,
-    imageElementConfig:     ^ImageElementConfig,
-    customElementConfig:    ^CustomElementConfig,
-    borderElementConfig:    ^BorderElementConfig,
+TextRenderData :: struct {
+    stringContents: StringSlice,
+    textColor: Color,
+    fontId: u16,
+    fontSize: u16,
+    letterSpacing: u16,
+    lineHeight: u16,
+}
+
+RectangleRenderData :: struct {
+    backgroundColor: Color,
+    cornerRadius: CornerRadius,
+}
+
+ImageRenderData :: struct {
+    backgroundColor: Color,
+    cornerRadius: CornerRadius,
+    sourceDimensions: Dimensions,
+    imageData: rawptr,
+}
+
+CustomRenderData :: struct {
+    backgroundColor: Color,
+    cornerRadius: CornerRadius,
+    customData: rawptr,
+}
+
+BorderRenderData :: struct {
+    color: Color,
+    cornerRadius: CornerRadius,
+    width: BorderWidth,
+}
+
+RenderCommandData :: struct #raw_union {
+    rectangle: RectangleRenderData,
+    text: TextRenderData,
+    image: ImageRenderData,
+    custom: CustomRenderData,
+    border: BorderRenderData,
 }
 
 RenderCommand :: struct {
-    boundingBox: BoundingBox,
-    config:      ElementConfigUnion,
-    text:        StringSlice,
-    zIndex:      i32,
-    id:          u32,
-    commandType: RenderCommandType,
+    boundingBox:        BoundingBox,
+    renderData:         RenderCommandData,
+    userData:           rawptr,
+    id:                 u32,
+    zIndex:             i16,
+    commandType:        RenderCommandType,
 }
 
 ScrollContainerData :: struct {
@@ -203,10 +234,10 @@ ScrollContainerData :: struct {
 }
 
 SizingType :: enum EnumBackingType {
-    FIT,
-    GROW,
-    PERCENT,
-    FIXED,
+    Fit,
+    Grow,
+    Percent,
+    Fixed,
 }
 
 SizingConstraintsMinMax :: struct {
@@ -238,20 +269,20 @@ Padding :: struct {
 }
 
 LayoutDirection :: enum EnumBackingType {
-    LEFT_TO_RIGHT,
-    TOP_TO_BOTTOM,
+    LeftToRight,
+    TopToBottom,
 }
 
 LayoutAlignmentX :: enum EnumBackingType {
-    LEFT,
-    RIGHT,
-    CENTER,
+    Left,
+    Right,
+    Center,
 }
 
 LayoutAlignmentY :: enum EnumBackingType {
-    TOP,
-    BOTTOM,
-    CENTER,
+    Top,
+    Bottom,
+    Center,
 }
 
 ChildAlignment :: struct {
@@ -273,20 +304,28 @@ ClayArray :: struct($type: typeid) {
     internalArray: [^]type,
 }
 
-TypedConfig :: struct {
-    type:   ElementConfigType,
-    config: rawptr,
-    id:     ElementId,
+ElementDeclaration :: struct {
+    id: ElementId,
+    layout: LayoutConfig,
+    backgroundColor: Color,
+    cornerRadius: CornerRadius,
+    image: ImageElementConfig,
+    floating: FloatingElementConfig,
+    custom: CustomElementConfig,
+    scroll: ScrollElementConfig,
+    border: BorderElementConfig,
+    userData: rawptr
 }
 
 ErrorType :: enum {
-    TEXT_MEASUREMENT_FUNCTION_NOT_PROVIDED,
-    ARENA_CAPACITY_EXCEEDED,
-    ELEMENTS_CAPACITY_EXCEEDED,
-    TEXT_MEASUREMENT_CAPACITY_EXCEEDED,
-    DUPLICATE_ID,
-    FLOATING_CONTAINER_PARENT_NOT_FOUND,
-    INTERNAL_ERROR,
+    TextMeasurementFunctionNotProvided,
+    ArenaCapacityExceeded,
+    ElementsCapacityExceeded,
+    TextMeasurementCapacityExceeded,
+    DuplicateId,
+    FloatingContainerParentNotFound,
+    PercentageOver1,
+    InternalError,
 }
 
 ErrorData :: struct {
@@ -321,51 +360,27 @@ foreign Clay {
 @(link_prefix = "Clay_", default_calling_convention = "c", private)
 foreign Clay {
     _OpenElement :: proc() ---
+    _ConfigureOpenElement :: proc(config: ElementDeclaration) ---
     _CloseElement :: proc() ---
-    _ElementPostConfiguration :: proc() ---
     _OpenTextElement :: proc(text: String, textConfig: ^TextElementConfig) ---
-    _AttachId :: proc(id: ElementId) ---
-    _AttachLayoutConfig :: proc(layoutConfig: ^LayoutConfig) ---
-    _AttachElementConfig :: proc(config: rawptr, type: ElementConfigType) ---
-    _StoreLayoutConfig :: proc(config: LayoutConfig) -> ^LayoutConfig ---
-    _StoreRectangleElementConfig :: proc(config: RectangleElementConfig) -> ^RectangleElementConfig ---
     _StoreTextElementConfig :: proc(config: TextElementConfig) -> ^TextElementConfig ---
-    _StoreImageElementConfig :: proc(config: ImageElementConfig) -> ^ImageElementConfig ---
-    _StoreFloatingElementConfig :: proc(config: FloatingElementConfig) -> ^FloatingElementConfig ---
-    _StoreCustomElementConfig :: proc(config: CustomElementConfig) -> ^CustomElementConfig ---
-    _StoreScrollElementConfig :: proc(config: ScrollElementConfig) -> ^ScrollElementConfig ---
-    _StoreBorderElementConfig :: proc(config: BorderElementConfig) -> ^BorderElementConfig ---
     _HashString :: proc(toHash: String, index: u32, seed: u32) -> ElementId ---
     _GetOpenLayoutElementId :: proc() -> u32 ---
 }
 
-@(require_results, deferred_none = _CloseElement)
-UI :: proc(configs: ..TypedConfig) -> bool {
+ClayOpenElement :: struct {
+    configure: proc (config: ElementDeclaration) -> bool
+}
+
+ConfigureOpenElement :: proc(config: ElementDeclaration) -> bool {
+    _ConfigureOpenElement(config)
+    return true;
+}
+
+@(deferred_none = _CloseElement)
+UI :: proc() -> ClayOpenElement {
     _OpenElement()
-    for config in configs {
-        #partial switch (config.type) {
-        case ElementConfigType.Id:
-            _AttachId(config.id)
-        case ElementConfigType.Layout:
-            _AttachLayoutConfig(cast(^LayoutConfig)config.config)
-        case:
-            _AttachElementConfig(config.config, config.type)
-        }
-    }
-    _ElementPostConfiguration()
-    return true
-}
-
-Layout :: proc(config: LayoutConfig) -> TypedConfig {
-    return {type = ElementConfigType.Layout, config = _StoreLayoutConfig(config) }
-}
-
-PaddingAll :: proc (padding: u16) -> Padding {
-    return { padding, padding, padding, padding }
-}
-
-Rectangle :: proc(config: RectangleElementConfig) -> TypedConfig {
-    return {type = ElementConfigType.Rectangle, config = _StoreRectangleElementConfig(config)}
+    return { configure = ConfigureOpenElement }
 }
 
 Text :: proc(text: string, config: ^TextElementConfig) {
@@ -376,44 +391,8 @@ TextConfig :: proc(config: TextElementConfig) -> ^TextElementConfig {
     return _StoreTextElementConfig(config)
 }
 
-Image :: proc(config: ImageElementConfig) -> TypedConfig {
-    return {type = ElementConfigType.Image, config = _StoreImageElementConfig(config)}
-}
-
-Floating :: proc(config: FloatingElementConfig) -> TypedConfig {
-    return {type = ElementConfigType.Floating, config = _StoreFloatingElementConfig(config)}
-}
-
-Custom :: proc(config: CustomElementConfig) -> TypedConfig {
-    return {type = ElementConfigType.Custom, config = _StoreCustomElementConfig(config)}
-}
-
-Scroll :: proc(config: ScrollElementConfig) -> TypedConfig {
-    return {type = ElementConfigType.Scroll, config = _StoreScrollElementConfig(config)}
-}
-
-Border :: proc(config: BorderElementConfig) -> TypedConfig {
-    return {type = ElementConfigType.Border, config = _StoreBorderElementConfig(config)}
-}
-
-BorderOutside :: proc(outsideBorders: BorderData) -> TypedConfig {
-    return { type = ElementConfigType.Border, config = _StoreBorderElementConfig((BorderElementConfig){left = outsideBorders, right = outsideBorders, top = outsideBorders, bottom = outsideBorders}) }
-}
-
-BorderOutsideRadius :: proc(outsideBorders: BorderData, radius: f32) -> TypedConfig {
-    return { type = ElementConfigType.Border, config = _StoreBorderElementConfig(
-        (BorderElementConfig){left = outsideBorders, right = outsideBorders, top = outsideBorders, bottom = outsideBorders, cornerRadius = {radius, radius, radius, radius}},
-    ) }
-}
-
-BorderAll :: proc(allBorders: BorderData) -> TypedConfig {
-    return { type = ElementConfigType.Border, config = _StoreBorderElementConfig((BorderElementConfig){left = allBorders, right = allBorders, top = allBorders, bottom = allBorders, betweenChildren = allBorders}) }
-}
-
-BorderAllRadius :: proc(allBorders: BorderData, radius: f32) -> TypedConfig {
-    return { type = ElementConfigType.Border, config = _StoreBorderElementConfig(
-        (BorderElementConfig){left = allBorders, right = allBorders, top = allBorders, bottom = allBorders, cornerRadius = {radius, radius, radius, radius}},
-    ) }
+PaddingAll :: proc(allPadding: u16) -> Padding {
+    return { left = allPadding, right = allPadding, top = allPadding, bottom = allPadding }
 }
 
 CornerRadiusAll :: proc(radius: f32) -> CornerRadius {
@@ -421,25 +400,25 @@ CornerRadiusAll :: proc(radius: f32) -> CornerRadius {
 }
 
 SizingFit :: proc(sizeMinMax: SizingConstraintsMinMax) -> SizingAxis {
-    return SizingAxis{type = SizingType.FIT, constraints = {sizeMinMax = sizeMinMax}}
+    return SizingAxis{type = SizingType.Fit, constraints = {sizeMinMax = sizeMinMax}}
 }
 
 SizingGrow :: proc(sizeMinMax: SizingConstraintsMinMax) -> SizingAxis {
-    return SizingAxis{type = SizingType.GROW, constraints = {sizeMinMax = sizeMinMax}}
+    return SizingAxis{type = SizingType.Grow, constraints = {sizeMinMax = sizeMinMax}}
 }
 
 SizingFixed :: proc(size: c.float) -> SizingAxis {
-    return SizingAxis{type = SizingType.FIXED, constraints = {sizeMinMax = {size, size}}}
+    return SizingAxis{type = SizingType.Fixed, constraints = {sizeMinMax = {size, size}}}
 }
 
 SizingPercent :: proc(sizePercent: c.float) -> SizingAxis {
-    return SizingAxis{type = SizingType.PERCENT, constraints = {sizePercent = sizePercent}}
+    return SizingAxis{type = SizingType.Percent, constraints = {sizePercent = sizePercent}}
 }
 
 MakeString :: proc(label: string) -> String {
     return String{chars = raw_data(label), length = cast(c.int)len(label)}
 }
 
-ID :: proc(label: string, index: u32 = 0) -> TypedConfig {
-    return { type = ElementConfigType.Id, id = _HashString(MakeString(label), index, 0) }
+ID :: proc(label: string, index: u32 = 0) -> ElementId {
+    return _HashString(MakeString(label), index, 0)
 }
